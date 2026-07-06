@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>INFA Contractors Onboarding Dashboard</title>
+    <title>Fieldglass Onboarding Status Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
     <style>
@@ -46,7 +46,7 @@
 
         .summary-cards {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
             gap: 20px;
             margin-bottom: 30px;
         }
@@ -58,10 +58,10 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
-        .card.health-red { border-left: 5px solid #e74c3c; }
-        .card.health-orange { border-left: 5px solid #e67e22; }
-        .card.health-yellow { border-left: 5px solid #f39c12; }
-        .card.health-green { border-left: 5px solid #27ae60; }
+        .card.status-moved { border-left: 5px solid #4CAF50; }
+        .card.status-transition { border-left: 5px solid #2196F3; }
+        .card.status-clarity { border-left: 5px solid #FFC107; }
+        .card.status-infa { border-left: 5px solid #FF9800; }
 
         .card-title {
             font-size: 0.85em;
@@ -83,25 +83,22 @@
             margin-top: 5px;
         }
 
-        .health-indicator {
+        .status-badge {
             display: inline-block;
-            padding: 5px 15px;
+            padding: 4px 12px;
             border-radius: 20px;
-            font-size: 0.85em;
+            font-size: 0.8em;
             font-weight: bold;
-            margin-top: 10px;
+            color: white;
+            white-space: nowrap;
         }
-
-        .health-indicator.red { background: #e74c3c; color: white; }
-        .health-indicator.orange { background: #e67e22; color: white; }
-        .health-indicator.yellow { background: #f39c12; color: white; }
-        .health-indicator.green { background: #27ae60; color: white; }
 
         .tabs {
             display: flex;
             gap: 10px;
             margin-bottom: 20px;
             border-bottom: 2px solid #ddd;
+            flex-wrap: wrap;
         }
 
         .tab {
@@ -143,7 +140,7 @@
 
         .chart-wrapper {
             position: relative;
-            height: 500px;
+            height: 450px;
         }
 
         table {
@@ -164,6 +161,12 @@
             padding: 15px;
             text-align: left;
             font-weight: 600;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        th:hover {
+            background: #5a6fd8;
         }
 
         td {
@@ -186,7 +189,7 @@
         }
 
         .search-box {
-            margin-bottom: 20px;
+            margin-bottom: 0;
             padding: 12px;
             width: 100%;
             max-width: 400px;
@@ -198,6 +201,26 @@
         .search-box:focus {
             outline: none;
             border-color: #667eea;
+        }
+
+        select {
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 1em;
+        }
+
+        .filter-bar {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .result-count {
+            color: #7f8c8d;
+            font-size: 0.9em;
         }
 
         /* Modal */
@@ -278,17 +301,14 @@
             white-space: pre-wrap;
         }
 
-        .notes-section {
-            margin-top: 20px;
+        .data-issue-box {
+            margin-top: 15px;
             padding: 15px;
-            background: #f8f9fa;
-            border-left: 4px solid #667eea;
+            background: #fff8e1;
+            border-left: 4px solid #FFC107;
             border-radius: 5px;
-        }
-
-        .notes-section h3 {
-            margin-bottom: 10px;
-            color: #667eea;
+            color: #7f6000;
+            font-size: 0.9em;
         }
 
         @media print {
@@ -301,7 +321,7 @@
             }
 
             .chart-wrapper {
-                height: 400px;
+                height: 350px;
             }
 
             .detail-row {
@@ -314,109 +334,141 @@
 <body>
     <div class="container">
         <header>
-            <h1>INFA Contractors Onboarding Dashboard</h1>
-            <div class="subtitle">Informatica Acquisition - Contractor Transition to Salesforce</div>
-            <div class="subtitle" id="last-updated"></div>
+            <h1>Fieldglass Onboarding Status Dashboard</h1>
+            <div class="subtitle">INFA Contractors &mdash; IQN vs. Fieldglass Migration Status</div>
+            <div class="subtitle" id="generated-at"></div>
         </header>
 
         <div class="summary-cards" id="summary-cards">
-            <!-- Summary cards will be inserted here -->
+            <!-- Summary cards inserted here -->
         </div>
 
         <div class="tabs">
-            <button class="tab active" onclick="switchTab('transition-plan')">By Transition Plan & Status</button>
-            <button class="tab" onclick="switchTab('fieldglass')">By Fieldglass Status</button>
-            <button class="tab" onclick="switchTab('bill-rates')">Bill Rate by Function</button>
-            <button class="tab" onclick="switchTab('contractors')">Contractor Details</button>
+            <button class="tab active" onclick="switchTab(event, 'overview')">Overview</button>
+            <button class="tab" onclick="switchTab(event, 'by-manager')">By Hiring Manager</button>
+            <button class="tab" onclick="switchTab(event, 'by-supplier')">By Supplier</button>
+            <button class="tab" onclick="switchTab(event, 'by-department')">By Department</button>
+            <button class="tab" onclick="switchTab(event, 'contractors')">Contractor Details</button>
         </div>
 
-        <div id="transition-plan" class="tab-content active">
-            <div class="chart-container">
-                <h2 style="margin-bottom: 20px; color: #2c3e50;">Completion by Transition Plan</h2>
-                <div class="chart-wrapper">
-                    <canvas id="transitionPlanChart"></canvas>
-                </div>
-            </div>
-
+        <div id="overview" class="tab-content active">
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px;">
                 <div class="chart-container">
                     <h2 style="margin-bottom: 20px; color: #2c3e50;">Status Distribution</h2>
-                    <div class="chart-wrapper" style="height: 400px;">
+                    <div class="chart-wrapper">
                         <canvas id="statusChart"></canvas>
                     </div>
                 </div>
                 <div class="chart-container">
-                    <h2 style="margin-bottom: 20px; color: #2c3e50;">Top Suppliers</h2>
-                    <div class="chart-wrapper" style="height: 400px;">
-                        <canvas id="supplierChart"></canvas>
+                    <h2 style="margin-bottom: 20px; color: #2c3e50;">Top Suppliers by Status</h2>
+                    <div class="chart-wrapper">
+                        <canvas id="supplierOverviewChart"></canvas>
                     </div>
                 </div>
             </div>
+            <div id="data-issues-container"></div>
         </div>
 
-        <div id="fieldglass" class="tab-content">
+        <div id="by-manager" class="tab-content">
             <div class="chart-container">
-                <h2 style="margin-bottom: 20px; color: #2c3e50;">Fieldglass Status Distribution (In-Scope Only)</h2>
-                <p style="color: #7f8c8d; margin-bottom: 20px;">
-                    <strong>Note:</strong> Percentages shown are based on in-scope contractors only (excluding "No Action Needed").
-                </p>
-                <div class="chart-wrapper">
-                    <canvas id="fieldglassChart"></canvas>
+                <h2 style="margin-bottom: 10px; color: #2c3e50;">Managers with Contractors Needing Clarity</h2>
+                <p style="color: #7f8c8d; margin-bottom: 20px;">Sorted by "Needs clarity from manager" count &mdash; these are the follow-ups to chase first.</p>
+                <div class="chart-wrapper" style="height: 600px;">
+                    <canvas id="managerChart"></canvas>
                 </div>
+            </div>
+            <div style="overflow-x: auto;">
+                <table id="managerTable">
+                    <thead>
+                        <tr>
+                            <th onclick="sortTable('managerTable', 0)">Hiring Manager</th>
+                            <th onclick="sortTable('managerTable', 1)">Moved to Fieldglass</th>
+                            <th onclick="sortTable('managerTable', 2)">Transition Initiated</th>
+                            <th onclick="sortTable('managerTable', 3)">Needs Clarity</th>
+                            <th onclick="sortTable('managerTable', 4)">Remaining in INFA</th>
+                            <th onclick="sortTable('managerTable', 5)">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="managerTableBody"></tbody>
+                </table>
             </div>
         </div>
 
-        <div id="bill-rates" class="tab-content">
+        <div id="by-supplier" class="tab-content">
             <div class="chart-container">
-                <h2 style="margin-bottom: 20px; color: #2c3e50;">Total Bill Rate by Salesforce Function</h2>
-                <p style="color: #7f8c8d; margin-bottom: 20px;">
-                    Aggregated monthly/annual bill rates (USD) grouped by Salesforce Function.
-                </p>
-                <div style="overflow-x: auto;">
-                    <table id="billRateTable">
-                        <thead>
-                            <tr>
-                                <th>Salesforce Function</th>
-                                <th style="text-align: right;">SUM of Bill Rate (USD)</th>
-                            </tr>
-                        </thead>
-                        <tbody id="billRateTableBody">
-                            <!-- Rows will be inserted here -->
-                        </tbody>
-                    </table>
+                <h2 style="margin-bottom: 20px; color: #2c3e50;">Status by Supplier Organization (Top 15)</h2>
+                <div class="chart-wrapper" style="height: 600px;">
+                    <canvas id="supplierChart"></canvas>
                 </div>
+            </div>
+            <div style="overflow-x: auto;">
+                <table id="supplierTable">
+                    <thead>
+                        <tr>
+                            <th onclick="sortTable('supplierTable', 0)">Supplier Organization</th>
+                            <th onclick="sortTable('supplierTable', 1)">Moved to Fieldglass</th>
+                            <th onclick="sortTable('supplierTable', 2)">Transition Initiated</th>
+                            <th onclick="sortTable('supplierTable', 3)">Needs Clarity</th>
+                            <th onclick="sortTable('supplierTable', 4)">Remaining in INFA</th>
+                            <th onclick="sortTable('supplierTable', 5)">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="supplierTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="by-department" class="tab-content">
+            <div class="chart-container">
+                <h2 style="margin-bottom: 20px; color: #2c3e50;">Status by Department (Top 15)</h2>
+                <div class="chart-wrapper" style="height: 600px;">
+                    <canvas id="departmentChart"></canvas>
+                </div>
+            </div>
+            <div style="overflow-x: auto;">
+                <table id="departmentTable">
+                    <thead>
+                        <tr>
+                            <th onclick="sortTable('departmentTable', 0)">Department</th>
+                            <th onclick="sortTable('departmentTable', 1)">Moved to Fieldglass</th>
+                            <th onclick="sortTable('departmentTable', 2)">Transition Initiated</th>
+                            <th onclick="sortTable('departmentTable', 3)">Needs Clarity</th>
+                            <th onclick="sortTable('departmentTable', 4)">Remaining in INFA</th>
+                            <th onclick="sortTable('departmentTable', 5)">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="departmentTableBody"></tbody>
+                </table>
             </div>
         </div>
 
         <div id="contractors" class="tab-content">
-            <div class="card" style="margin-bottom: 20px; display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
-                <input type="text" id="search" class="search-box" placeholder="Search by name, department, or status..." style="margin-bottom: 0;">
-                <select id="transitionPlanFilter" style="padding: 12px; border: 2px solid #ddd; border-radius: 5px; font-size: 1em; min-width: 250px;">
-                    <option value="">All Transition Plans</option>
+            <div class="card filter-bar">
+                <input type="text" id="search" class="search-box" placeholder="Search by name, department, manager, supplier...">
+                <select id="statusFilter">
+                    <option value="">All Statuses</option>
                 </select>
+                <span class="result-count" id="result-count"></span>
             </div>
             <div style="overflow-x: auto;">
                 <table id="contractorTable">
                     <thead>
                         <tr>
                             <th>Resource Name</th>
-                            <th>Transition Plan</th>
                             <th>Status</th>
-                            <th>Fieldglass Status</th>
-                            <th>Department</th>
                             <th>Hiring Manager</th>
+                            <th>Supplier Organization</th>
+                            <th>Department</th>
+                            <th>End Date</th>
                         </tr>
                     </thead>
-                    <tbody id="contractorTableBody">
-                        <!-- Rows will be inserted here -->
-                    </tbody>
+                    <tbody id="contractorTableBody"></tbody>
                 </table>
             </div>
         </div>
 
-        <!-- Source Data Link -->
         <footer style="margin-top: 40px; padding: 20px; text-align: center; border-top: 1px solid #ddd; color: #7f8c8d;">
-            <p>Source Data: <a href="https://docs.google.com/spreadsheets/d/1XWxUBun1zYpT4n3Am8ePLz7NNnSenbxlyA7tOpuE-oA/edit?gid=1195362166#gid=1195362166" target="_blank" style="color: #667eea;">INFA Contractors Google Sheet</a></p>
+            <p>Source: INFA contractors IQN vs FG export. Status derived from the row-color legend supplied by the business owner (green = Moved to Fieldglass, blue = Transition initiated, yellow = Needs clarity from manager, orange = Remaining in INFA system).</p>
         </footer>
     </div>
 
@@ -427,17 +479,15 @@
                 <h2 id="modal-name"></h2>
                 <button class="close" onclick="closeModal()">&times;</button>
             </div>
-            <div class="modal-body" id="modal-body">
-                <!-- Details will be inserted here -->
-            </div>
+            <div class="modal-body" id="modal-body"></div>
         </div>
     </div>
 
     <script>
         let dashboardData = null;
         let allContractors = [];
+        let sortState = {};
 
-        // Load data
         async function loadData() {
             try {
                 const response = await fetch('dashboard_data.json');
@@ -445,169 +495,103 @@
                 initDashboard();
             } catch (error) {
                 console.error('Error loading data:', error);
-                alert('Error loading dashboard data. Please ensure dashboard_data.json is in the same directory.');
+                alert('Error loading dashboard data. Please ensure dashboard_data.json is in the same directory and you are viewing this via a web server (not double-clicking the file).');
             }
+        }
+
+        function statusColor(status) {
+            return (dashboardData.status_colors && dashboardData.status_colors[status]) || '#9E9E9E';
+        }
+
+        function statusClass(status) {
+            const map = {
+                'Moved to Fieldglass': 'status-moved',
+                'Transition initiated to Fieldglass': 'status-transition',
+                'Needs clarity from manager': 'status-clarity',
+                'Remaining in INFA system': 'status-infa'
+            };
+            return map[status] || '';
         }
 
         function initDashboard() {
             allContractors = dashboardData.contractors;
+
+            document.getElementById('generated-at').textContent =
+                `${dashboardData.total_contractors} contractors — generated from ${dashboardData.generated_from}`;
+
             renderSummaryCards();
-            renderTransitionPlanChart();
             renderStatusChart();
+            renderSupplierOverviewChart();
+            renderManagerChart();
             renderSupplierChart();
-            renderFieldglassChart();
-            renderBillRateTable();
+            renderDepartmentChart();
+            renderManagerTable();
+            renderSupplierTable();
+            renderDepartmentTable();
+            renderDataIssues();
             renderContractorTable(allContractors);
             setupSearch();
-            setupTransitionPlanFilter();
+            setupStatusFilter();
         }
 
         function renderSummaryCards() {
-            const summary = dashboardData.summary;
-            const lastUpdated = dashboardData.last_data_update;
-
-            document.getElementById('last-updated').textContent =
-                `Data as of: ${lastUpdated} | Generated: ${new Date(dashboardData.generated_at).toLocaleString()}`;
+            const counts = dashboardData.status_counts;
+            const total = dashboardData.total_contractors;
 
             const cardsHTML = `
-                <div class="card health-${summary.overall_health}">
+                <div class="card">
                     <div class="card-title">Total Contractors</div>
-                    <div class="card-value">${summary.total_contractors}</div>
-                    <div class="card-subtitle">From Informatica acquisition</div>
+                    <div class="card-value">${total}</div>
+                    <div class="card-subtitle">In the IQN vs Fieldglass export</div>
                 </div>
-                <div class="card health-${summary.overall_health}">
-                    <div class="card-title">Overall Completion</div>
-                    <div class="card-value">${summary.overall_completion_percentage}%</div>
-                    <div class="card-subtitle">${summary.complete_count} of ${summary.total_contractors} complete/out-of-scope</div>
-                    <span class="health-indicator ${summary.overall_health}">${summary.overall_health.toUpperCase()}</span>
+                <div class="card status-moved">
+                    <div class="card-title">Moved to Fieldglass</div>
+                    <div class="card-value" style="color:#4CAF50;">${counts['Moved to Fieldglass']}</div>
+                    <div class="card-subtitle">${pct(counts['Moved to Fieldglass'], total)}% of total</div>
                 </div>
-                <div class="card">
-                    <div class="card-title">In Scope</div>
-                    <div class="card-value" style="color: #3498db;">${summary.in_scope_count}</div>
-                    <div class="card-subtitle">${summary.in_scope_completion_percentage}% of in-scope complete</div>
+                <div class="card status-transition">
+                    <div class="card-title">Transition Initiated</div>
+                    <div class="card-value" style="color:#2196F3;">${counts['Transition initiated to Fieldglass']}</div>
+                    <div class="card-subtitle">${pct(counts['Transition initiated to Fieldglass'], total)}% of total</div>
                 </div>
-                <div class="card">
-                    <div class="card-title">Out of Scope</div>
-                    <div class="card-value" style="color: #95a5a6;">${summary.out_of_scope_count}</div>
-                    <div class="card-subtitle">No action needed</div>
+                <div class="card status-clarity">
+                    <div class="card-title">Needs Clarity from Manager</div>
+                    <div class="card-value" style="color:#FFC107;">${counts['Needs clarity from manager']}</div>
+                    <div class="card-subtitle">${pct(counts['Needs clarity from manager'], total)}% of total &mdash; action needed</div>
                 </div>
-                <div class="card">
-                    <div class="card-title">Complete/Onboarded</div>
-                    <div class="card-value" style="color: #27ae60;">${summary.complete_count - summary.out_of_scope_count}</div>
-                    <div class="card-subtitle">Successfully transitioned</div>
-                </div>
-                <div class="card">
-                    <div class="card-title">In Progress</div>
-                    <div class="card-value" style="color: #e67e22;">${summary.in_progress_count}</div>
-                    <div class="card-subtitle">Still working on it</div>
+                <div class="card status-infa">
+                    <div class="card-title">Remaining in INFA System</div>
+                    <div class="card-value" style="color:#FF9800;">${counts['Remaining in INFA system']}</div>
+                    <div class="card-subtitle">${pct(counts['Remaining in INFA system'], total)}% of total</div>
                 </div>
             `;
 
             document.getElementById('summary-cards').innerHTML = cardsHTML;
         }
 
-        function renderTransitionPlanChart() {
-            const ctx = document.getElementById('transitionPlanChart').getContext('2d');
-            const plans = dashboardData.by_transition_plan;
-
-            // Take top 15 transition plans by count
-            const topPlans = plans.slice(0, 15);
-
-            const labels = topPlans.map(p => {
-                const name = p.name.length > 40 ? p.name.substring(0, 37) + '...' : p.name;
-                return `${name} (${p.completion_percentage}%)`;
-            });
-
-            const completeData = topPlans.map(p => p.complete);
-            const incompleteData = topPlans.map(p => p.total - p.complete);
-
-            new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        {
-                            label: 'Complete/Onboarded',
-                            data: completeData,
-                            backgroundColor: '#27ae60'
-                        },
-                        {
-                            label: 'In Progress',
-                            data: incompleteData,
-                            backgroundColor: '#e67e22'
-                        }
-                    ]
-                },
-                options: {
-                    indexAxis: 'y',
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: {
-                            stacked: true,
-                            title: {
-                                display: true,
-                                text: 'Number of Contractors'
-                            }
-                        },
-                        y: {
-                            stacked: true
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            position: 'top'
-                        },
-                        tooltip: {
-                            callbacks: {
-                                afterLabel: function(context) {
-                                    const plan = topPlans[context.dataIndex];
-                                    return `Total: ${plan.total}`;
-                                }
-                            }
-                        },
-                        datalabels: {
-                            display: function(context) {
-                                return context.dataset.data[context.dataIndex] > 0;
-                            },
-                            color: '#fff',
-                            font: { weight: 'bold', size: 11 },
-                            anchor: 'center',
-                            align: 'center'
-                        }
-                    }
-                },
-                plugins: [ChartDataLabels]
-            });
+        function pct(n, total) {
+            return total > 0 ? Math.round((n / total) * 1000) / 10 : 0;
         }
 
         function renderStatusChart() {
             const ctx = document.getElementById('statusChart').getContext('2d');
-            const statuses = dashboardData.status_distribution.slice(0, 8); // Top 8
+            const order = dashboardData.status_order;
+            const counts = dashboardData.status_counts;
 
             new Chart(ctx, {
                 type: 'doughnut',
                 data: {
-                    labels: statuses.map(s => s.status),
+                    labels: order,
                     datasets: [{
-                        data: statuses.map(s => s.count),
-                        backgroundColor: [
-                            '#667eea', '#764ba2', '#f093fb', '#4facfe',
-                            '#43e97b', '#fa709a', '#fee140', '#30cfd0'
-                        ]
+                        data: order.map(s => counts[s]),
+                        backgroundColor: order.map(s => statusColor(s))
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                boxWidth: 12,
-                                font: { size: 11 }
-                            }
-                        },
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
@@ -620,16 +604,9 @@
                             }
                         },
                         datalabels: {
-                            display: function(context) {
-                                const value = context.dataset.data[context.dataIndex];
-                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                return (value / total) > 0.03; // Only show if > 3% of total
-                            },
                             color: '#fff',
                             font: { weight: 'bold', size: 12 },
-                            formatter: function(value) {
-                                return value;
-                            }
+                            formatter: (value) => value
                         }
                     }
                 },
@@ -637,71 +614,28 @@
             });
         }
 
-        function renderSupplierChart() {
-            const ctx = document.getElementById('supplierChart').getContext('2d');
-            const suppliers = dashboardData.supplier_distribution.slice(0, 10); // Top 10
-
-            // Collect all unique statuses across the top suppliers
-            const allStatuses = new Set();
-            suppliers.forEach(s => {
-                Object.keys(s.status_breakdown || {}).forEach(st => allStatuses.add(st));
-            });
-
-            const statusColors = {
-                'In Progress': '#e67e22',
-                'Not Started': '#95a5a6',
-                'Complete': '#27ae60',
-                'No action needed': '#3498db',
-                'PO migration': '#9b59b6',
-                '#N/A': '#bdc3c7',
-                'New': '#1abc9c',
-                'Onboarded': '#2ecc71'
-            };
-
-            const datasets = [...allStatuses].map(status => ({
+        function stackedBarConfig(labels, rows, orientation) {
+            const order = dashboardData.status_order;
+            const datasets = order.map(status => ({
                 label: status,
-                data: suppliers.map(s => (s.status_breakdown || {})[status] || 0),
-                backgroundColor: statusColors[status] || '#667eea'
+                data: rows.map(r => r[status] || 0),
+                backgroundColor: statusColor(status)
             }));
-
-            new Chart(ctx, {
+            return {
                 type: 'bar',
-                data: {
-                    labels: suppliers.map(s => {
-                        const name = s.supplier.length > 30 ? s.supplier.substring(0, 27) + '...' : s.supplier;
-                        return name;
-                    }),
-                    datasets: datasets
-                },
+                data: { labels, datasets },
                 options: {
-                    indexAxis: 'y',
+                    indexAxis: orientation === 'horizontal' ? 'y' : 'x',
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
-                        x: {
-                            stacked: true,
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'Number of Contractors'
-                            }
-                        },
-                        y: {
-                            stacked: true
-                        }
+                        x: { stacked: true, title: { display: orientation !== 'horizontal', text: 'Number of Contractors' } },
+                        y: { stacked: true }
                     },
                     plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                boxWidth: 12,
-                                font: { size: 10 }
-                            }
-                        },
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } },
                         datalabels: {
-                            display: function(context) {
-                                return context.dataset.data[context.dataIndex] > 0;
-                            },
+                            display: (context) => context.dataset.data[context.dataIndex] > 0,
                             color: '#fff',
                             font: { weight: 'bold', size: 10 },
                             anchor: 'center',
@@ -710,94 +644,96 @@
                     }
                 },
                 plugins: [ChartDataLabels]
-            });
+            };
         }
 
-        function renderFieldglassChart() {
-            const ctx = document.getElementById('fieldglassChart').getContext('2d');
-            const statuses = dashboardData.fieldglass_distribution;
-
-            new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: statuses.map(s => s.status),
-                    datasets: [{
-                        label: 'In-Scope Contractors',
-                        data: statuses.map(s => s.count),
-                        backgroundColor: '#667eea'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'Count (In-Scope Only)'
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const status = statuses[context.dataIndex];
-                                    return `${status.count} contractors (${status.percentage}% of in-scope)`;
-                                }
-                            }
-                        },
-                        datalabels: {
-                            display: function(context) {
-                                return context.dataset.data[context.dataIndex] > 0;
-                            },
-                            color: '#333',
-                            font: { weight: 'bold', size: 12 },
-                            anchor: 'end',
-                            align: 'end',
-                            formatter: function(value, context) {
-                                const status = statuses[context.dataIndex];
-                                return `${value} (${status.percentage}%)`;
-                            }
-                        }
-                    }
-                },
-                plugins: [ChartDataLabels]
-            });
+        function truncate(s, n) {
+            return s && s.length > n ? s.substring(0, n - 3) + '...' : s;
         }
 
-        function renderBillRateTable() {
-            const tbody = document.getElementById('billRateTableBody');
-            const data = dashboardData.aggregate_bill_rates || [];
+        function renderSupplierOverviewChart() {
+            const ctx = document.getElementById('supplierOverviewChart').getContext('2d');
+            const suppliers = dashboardData.by_supplier.slice(0, 8);
+            const labels = suppliers.map(s => truncate(s.name, 28));
+            new Chart(ctx, stackedBarConfig(labels, suppliers, 'horizontal'));
+        }
 
-            tbody.innerHTML = data.map(row => {
-                const isGrandTotal = row.salesforce_function === 'Grand Total';
-                const rowStyle = isGrandTotal ? 'font-weight: bold; background: #f0f0f0;' : '';
-                return `
-                    <tr style="${rowStyle}">
-                        <td>${row.salesforce_function}</td>
-                        <td style="text-align: right; font-family: monospace;">${row.bill_rate_display}</td>
-                    </tr>
-                `;
-            }).join('');
+        function renderManagerChart() {
+            const ctx = document.getElementById('managerChart').getContext('2d');
+            const managers = dashboardData.by_manager.filter(m => m['Needs clarity from manager'] > 0).slice(0, 25);
+            const labels = managers.map(m => truncate(m.name, 30));
+            new Chart(ctx, stackedBarConfig(labels, managers, 'horizontal'));
+        }
+
+        function renderSupplierChart() {
+            const ctx = document.getElementById('supplierChart').getContext('2d');
+            const suppliers = dashboardData.by_supplier.slice(0, 15);
+            const labels = suppliers.map(s => truncate(s.name, 32));
+            new Chart(ctx, stackedBarConfig(labels, suppliers, 'horizontal'));
+        }
+
+        function renderDepartmentChart() {
+            const ctx = document.getElementById('departmentChart').getContext('2d');
+            const depts = dashboardData.by_department.slice(0, 15);
+            const labels = depts.map(d => truncate(d.name, 32));
+            new Chart(ctx, stackedBarConfig(labels, depts, 'horizontal'));
+        }
+
+        function renderGroupTable(bodyId, rows) {
+            const order = dashboardData.status_order;
+            const tbody = document.getElementById(bodyId);
+            tbody.innerHTML = rows.map(r => `
+                <tr>
+                    <td>${r.name}</td>
+                    ${order.map(s => `<td>${r[s] || 0}</td>`).join('')}
+                    <td><strong>${r.total}</strong></td>
+                </tr>
+            `).join('');
+        }
+
+        function renderManagerTable() {
+            renderGroupTable('managerTableBody', dashboardData.by_manager);
+        }
+
+        function renderSupplierTable() {
+            renderGroupTable('supplierTableBody', dashboardData.by_supplier);
+        }
+
+        function renderDepartmentTable() {
+            renderGroupTable('departmentTableBody', dashboardData.by_department);
+        }
+
+        function renderDataIssues() {
+            const container = document.getElementById('data-issues-container');
+            const issues = dashboardData.data_issues || [];
+            if (issues.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+            container.innerHTML = `
+                <div class="data-issue-box">
+                    <strong>Data Issues:</strong> ${issues.length} row(s) in the source file have a broken
+                    <code>#VALUE!</code> formula in the ID - Version column:
+                    <ul style="margin-top: 8px; margin-left: 20px;">
+                        ${issues.map(i => `<li>Row ${i.row}: ${i.resource}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
         }
 
         function renderContractorTable(contractors) {
             const tbody = document.getElementById('contractorTableBody');
-            tbody.innerHTML = contractors.map((c, idx) => {
+            document.getElementById('result-count').textContent = `${contractors.length} of ${allContractors.length} contractors`;
+            tbody.innerHTML = contractors.map((c) => {
                 const realIdx = allContractors.indexOf(c);
                 return `
                 <tr>
-                    <td><span class="contractor-name" onclick="showContractorDetails(${realIdx})">${c.Resource || '(Unknown)'}</span></td>
-                    <td>${c['Transition Plan'] || '(Not Specified)'}</td>
-                    <td>${c._normalized_status || c.Status || 'Not Started'}</td>
-                    <td>${c['Fieldglass Status'] || '(Not Specified)'}</td>
-                    <td>${c.Department || '-'}</td>
-                    <td>${c['Hiring Manager'] || '-'}</td>
+                    <td><span class="contractor-name" onclick="showContractorDetails(${realIdx})">${c.resource || '(Unknown)'}</span></td>
+                    <td><span class="status-badge" style="background:${statusColor(c.status)};">${c.status}</span></td>
+                    <td>${c.hiring_manager || '-'}</td>
+                    <td>${c.supplier_organization || '-'}</td>
+                    <td>${c.department || '-'}</td>
+                    <td>${c.end_date || '-'}</td>
                 </tr>
                 `;
             }).join('');
@@ -805,26 +741,18 @@
 
         function filterContractors() {
             const query = (document.getElementById('search').value || '').toLowerCase();
-            const planFilter = document.getElementById('transitionPlanFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
 
             const filtered = allContractors.filter(c => {
                 const matchesSearch = !query || (
-                    (c.Resource || '').toLowerCase().includes(query) ||
-                    (c['Transition Plan'] || '').toLowerCase().includes(query) ||
-                    (c.Status || '').toLowerCase().includes(query) ||
-                    (c['Fieldglass Status'] || '').toLowerCase().includes(query) ||
-                    (c.Department || '').toLowerCase().includes(query) ||
-                    (c['Hiring Manager'] || '').toLowerCase().includes(query)
+                    (c.resource || '').toLowerCase().includes(query) ||
+                    (c.department || '').toLowerCase().includes(query) ||
+                    (c.hiring_manager || '').toLowerCase().includes(query) ||
+                    (c.supplier_organization || '').toLowerCase().includes(query) ||
+                    (c.status || '').toLowerCase().includes(query)
                 );
-
-                let matchesPlan = true;
-                if (planFilter === '__empty__') {
-                    matchesPlan = !(c['Transition Plan'] || '').trim();
-                } else if (planFilter) {
-                    matchesPlan = (c['Transition Plan'] || '').trim() === planFilter;
-                }
-
-                return matchesSearch && matchesPlan;
+                const matchesStatus = !statusFilter || c.status === statusFilter;
+                return matchesSearch && matchesStatus;
             });
 
             renderContractorTable(filtered);
@@ -834,84 +762,71 @@
             document.getElementById('search').addEventListener('input', filterContractors);
         }
 
-        function setupTransitionPlanFilter() {
-            const select = document.getElementById('transitionPlanFilter');
-            // Get unique transition plans sorted by count
-            const plans = {};
-            allContractors.forEach(c => {
-                const plan = (c['Transition Plan'] || '').trim() || '(Not Specified)';
-                plans[plan] = (plans[plan] || 0) + 1;
-            });
-
-            const sorted = Object.entries(plans).sort((a, b) => b[1] - a[1]);
-            sorted.forEach(([plan, count]) => {
+        function setupStatusFilter() {
+            const select = document.getElementById('statusFilter');
+            dashboardData.status_order.forEach(status => {
                 const option = document.createElement('option');
-                option.value = plan === '(Not Specified)' ? '' : plan;
-                option.textContent = `${plan} (${count})`;
-                if (plan === '(Not Specified)') {
-                    option.value = '';
-                    // Skip - handled by "All" option
-                    return;
-                }
+                option.value = status;
+                option.textContent = `${status} (${dashboardData.status_counts[status]})`;
                 select.appendChild(option);
             });
-
-            // Add "(Not Specified)" at end
-            if (plans['(Not Specified)']) {
-                const option = document.createElement('option');
-                option.value = '__empty__';
-                option.textContent = `(Not Specified) (${plans['(Not Specified)']})`;
-                select.appendChild(option);
-            }
-
             select.addEventListener('change', filterContractors);
         }
 
-        function showContractorDetails(index) {
-            const contractor = allContractors[index];
-            const modal = document.getElementById('contractorModal');
-            const modalName = document.getElementById('modal-name');
-            const modalBody = document.getElementById('modal-body');
+        function sortTable(tableId, colIndex) {
+            const table = document.getElementById(tableId);
+            const tbody = table.tBodies[0];
+            const rows = Array.from(tbody.rows);
+            const key = `${tableId}-${colIndex}`;
+            const asc = !sortState[key];
+            sortState = { [key]: asc };
 
-            modalName.textContent = contractor.Resource || '(Unknown)';
+            rows.sort((a, b) => {
+                const aText = a.cells[colIndex].textContent.trim();
+                const bText = b.cells[colIndex].textContent.trim();
+                const aNum = parseFloat(aText);
+                const bNum = parseFloat(bText);
+                let cmp;
+                if (!isNaN(aNum) && !isNaN(bNum)) {
+                    cmp = aNum - bNum;
+                } else {
+                    cmp = aText.localeCompare(bText);
+                }
+                return asc ? cmp : -cmp;
+            });
+
+            rows.forEach(r => tbody.appendChild(r));
+        }
+
+        function showContractorDetails(index) {
+            const c = allContractors[index];
+            const modal = document.getElementById('contractorModal');
+            document.getElementById('modal-name').textContent = c.resource || '(Unknown)';
 
             const fields = [
-                { label: 'Emp ID', value: contractor['Emp ID'] },
-                { label: 'Resource Email', value: contractor['Resource Email ID'] },
-                { label: 'Current Phase', value: contractor['Current Phase'] },
-                { label: 'Start Date', value: contractor['Start Date'] },
-                { label: 'End Date', value: contractor['End Date'] },
-                { label: 'Hiring Manager', value: contractor['Hiring Manager'] },
-                { label: 'Position Title', value: contractor['Position Title'] },
-                { label: 'Location', value: contractor['Location'] },
-                { label: 'Department', value: contractor.Department },
-                { label: 'Transition Plan', value: contractor['Transition Plan'] },
-                { label: 'Status', value: contractor.Status },
-                { label: 'Fieldglass Status', value: contractor['Fieldglass Status'] },
-                { label: 'Supplier Organization', value: contractor['Supplier Organization'] },
-                { label: 'Contractor Type', value: contractor['Contractor Type'] },
-                { label: 'Next Steps', value: contractor['Next Steps'] },
-                { label: 'Sourcing/GPS', value: contractor['Sourcing/GPS'] },
-                { label: 'Last Updated', value: contractor['Last updated'] }
+                { label: 'Status', value: c.status },
+                { label: 'Emp ID', value: c.emp_id },
+                { label: 'Resource Email', value: c.email },
+                { label: 'Current Phase', value: c.current_phase },
+                { label: 'Start Date', value: c.start_date },
+                { label: 'End Date', value: c.end_date },
+                { label: 'Hiring Manager', value: c.hiring_manager },
+                { label: 'Position Title', value: c.position_title },
+                { label: 'Location', value: c.location },
+                { label: 'Department', value: c.department },
+                { label: 'Supplier Organization', value: c.supplier_organization },
+                { label: 'Purchase Order', value: c.purchase_order },
+                { label: 'ID - Version', value: c.id_version }
             ];
 
-            let detailsHTML = fields.map(field => `
+            const detailsHTML = fields.map(f => `
                 <div class="detail-row">
-                    <div class="detail-label">${field.label}:</div>
-                    <div class="detail-value">${field.value || '-'}</div>
+                    <div class="detail-label">${f.label}:</div>
+                    <div class="detail-value">${f.value || '-'}</div>
                 </div>
             `).join('');
 
-            if (contractor.Notes) {
-                detailsHTML += `
-                    <div class="notes-section">
-                        <h3>Notes</h3>
-                        <div style="white-space: pre-wrap; line-height: 1.6;">${contractor.Notes}</div>
-                    </div>
-                `;
-            }
-
-            modalBody.innerHTML = detailsHTML;
+            document.getElementById('modal-body').innerHTML = detailsHTML;
             modal.style.display = 'block';
         }
 
@@ -919,29 +834,18 @@
             document.getElementById('contractorModal').style.display = 'none';
         }
 
-        function switchTab(tabName) {
-            // Hide all tabs
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.classList.remove('active');
-            });
-            document.querySelectorAll('.tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-
-            // Show selected tab
+        function switchTab(evt, tabName) {
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
             document.getElementById(tabName).classList.add('active');
-            event.target.classList.add('active');
+            evt.target.classList.add('active');
         }
 
-        // Close modal when clicking outside
         window.onclick = function(event) {
             const modal = document.getElementById('contractorModal');
-            if (event.target === modal) {
-                closeModal();
-            }
+            if (event.target === modal) closeModal();
         }
 
-        // Load data on page load
         loadData();
     </script>
 </body>

@@ -1,144 +1,58 @@
-# INFA Contractors Dashboard
+# Fieldglass Onboarding Status Dashboard
 
-Interactive web dashboard for tracking contractor onboarding progress from the Informatica acquisition to Salesforce.
+Interactive web dashboard tracking INFA contractor migration status from IQN to SAP Fieldglass, following the Informatica acquisition.
+
+**Live dashboard:** https://nikkimcdonald-dev.github.io/infa-contractors-dashboard/infa_contractors_dashboard.html
+
+## How status is determined
+
+The source workbook (`INFA contractors IQN vs FG (*).xlsx`) has no literal status column — every row shows `Current Phase = Working`. Instead, the file's author color-codes each row. Per the legend supplied by the business owner, status is derived from each row's fill color:
+
+| Color | Status |
+|---|---|
+| 🟩 Green | Moved to Fieldglass |
+| 🟦 Blue | Transition initiated to Fieldglass |
+| 🟨 Yellow | Needs clarity from manager |
+| 🟧 Orange | Remaining in INFA system |
 
 ## Files
 
-- **`prepare_dashboard_data.py`** - Python script that processes the CSV and generates JSON data
-- **`dashboard_data.json`** - Generated data file (created after running the script)
-- **`infa_contractors_dashboard.html`** - Interactive dashboard (open in browser)
-- **`README.md`** - This file
+- **`prepare_dashboard_data.py`** — reads the source `.xlsx`, classifies each row's status from its Excel fill color, and writes `dashboard_data.json`
+- **`dashboard_data.json`** — generated data file consumed by the dashboard
+- **`infa_contractors_dashboard.html`** — the interactive dashboard (open in a browser / served via GitHub Pages)
+- **`start_dashboard.sh`** — convenience script to serve the dashboard locally
 
-## Quick Start
+## Regenerating data
 
-### 1. Generate Dashboard Data
-
-Run the Python script to process the CSV file:
+When the source workbook is updated:
 
 ```bash
-cd /Users/nikki.mcdonald/.aisuite/notebook/.agents/artifacts
-python3 prepare_dashboard_data.py
+cd infa-contractors-dashboard
+python3 prepare_dashboard_data.py   # reads ~/Downloads/INFA contractors IQN vs FG (5).xlsx
+git add dashboard_data.json
+git commit -m "Update contractor data"
+git push
 ```
 
-This will:
-- Read the CSV from `~/Downloads/INFA Contractors - Apr Data (1).csv`
-- Calculate completion percentages and statistics
-- Generate `dashboard_data.json`
+GitHub Pages serves directly from `main`, so a push updates the live dashboard within a minute or two.
 
-### 2. Open Dashboard
-
-**Option A: Using the start script (Recommended)**
-
-Run the provided script which starts a local web server and opens the dashboard:
+## Running locally
 
 ```bash
-cd /Users/nikki.mcdonald/.aisuite/notebook/.agents/artifacts
+cd infa-contractors-dashboard
 ./start_dashboard.sh
 ```
 
-The dashboard will open at `http://localhost:8000/infa_contractors_dashboard.html`
+Opens `http://localhost:8000/infa_contractors_dashboard.html`. A local web server is required — browsers block `fetch()` of local JSON files opened via `file://`.
 
-Press `Ctrl+C` in the terminal to stop the server when done.
+## Dashboard sections
 
-**Option B: Manual web server**
+- **Overview** — doughnut chart of the 4 statuses; top suppliers by status mix; any data-quality issues found in the source file (e.g. broken formulas)
+- **By Hiring Manager** — bar chart + sortable table, sorted to surface managers with the most "Needs clarity" contractors first — the actionable follow-up list
+- **By Supplier** — status mix per staffing vendor
+- **By Department** — status mix per department/cost center
+- **Contractor Details** — searchable, filterable table of all 373 contractors; click a name for full details
 
-```bash
-cd /Users/nikki.mcdonald/.aisuite/notebook/.agents/artifacts
-python3 -m http.server 8000
-```
+## Data note
 
-Then open your browser and navigate to: `http://localhost:8000/infa_contractors_dashboard.html`
-
-**Why a web server?** Browsers block loading local JSON files for security reasons (CORS policy). Running a local web server solves this issue.
-
-## Dashboard Features
-
-### Summary Cards
-- **Total Contractors**: Count of all contractor records
-- **Overall Completion**: Percentage of contractors fully onboarded
-- **Health Indicator**: Color-coded status (Red/Orange/Yellow/Green)
-- **Status Breakdown**: Complete vs. In Progress counts
-
-### Tabs
-
-1. **By Transition Plan & Status**
-   - Horizontal bar chart showing completion by transition plan
-   - Doughnut chart showing overall status distribution
-   - Color-coded health indicators
-
-2. **By Fieldglass Status**
-   - Bar chart showing Fieldglass status distribution
-   - Note: Most records don't have Fieldglass status yet
-
-3. **Contractor Details**
-   - Searchable/filterable table with all contractors
-   - Click any contractor name to see full details including Notes
-
-### Interactive Features
-
-- **Search**: Filter contractors by name, department, status, or hiring manager
-- **Click to View Details**: Click any contractor name to open a modal with:
-  - Full contact information
-  - Dates and timeline
-  - Current status and transition plan
-  - Complete notes with formatting preserved
-  
-### Health Indicators
-
-The dashboard uses color coding based on completion percentage:
-- 🔴 **Red**: < 25% complete
-- 🟠 **Orange**: 25-50% complete
-- 🟡 **Yellow**: 50-75% complete
-- 🟢 **Green**: ≥ 75% complete
-
-## Updating Data
-
-When the CSV file is updated:
-
-1. Run the Python script again to regenerate the JSON:
-   ```bash
-   python3 prepare_dashboard_data.py
-   ```
-
-2. Refresh the dashboard in your browser (press F5 or Cmd+R)
-
-The dashboard will automatically load the new data.
-
-## Completion Calculation
-
-- **Complete**: Only contractors with Status = "Complete" or "Onboarded"
-- **In Progress**: All other statuses including blank/empty
-- **Binary Model**: Simple complete/incomplete for clearest visibility
-
-## Technical Details
-
-- **No Server Required**: Pure static HTML/CSS/JavaScript
-- **Libraries**: Chart.js v4.4.0 (loaded from CDN)
-- **Browser Support**: Modern browsers (Chrome, Firefox, Safari, Edge)
-- **Mobile Friendly**: Responsive design works on tablets and desktops
-
-## Troubleshooting
-
-**Dashboard shows "Error loading data"**
-- Make sure you're running the dashboard through a web server (use `./start_dashboard.sh`)
-- Don't open the HTML file directly (double-clicking won't work due to CORS restrictions)
-- Make sure `dashboard_data.json` exists in the same directory as the HTML file
-- Run `prepare_dashboard_data.py` to generate it if missing
-
-**Charts not showing**
-- Check internet connection (Chart.js loads from CDN)
-- Try refreshing the page
-
-**Data seems outdated**
-- Re-run `prepare_dashboard_data.py` to regenerate from the latest CSV
-- Refresh browser after regenerating
-
-## Data Location
-
-- **Source CSV**: `~/Downloads/INFA Contractors - Apr Data (1).csv`
-- **Generated JSON**: `.agents/artifacts/dashboard_data.json`
-- **Dashboard HTML**: `.agents/artifacts/infa_contractors_dashboard.html`
-
-## Print Support
-
-The dashboard is print-friendly. Use your browser's print function (Cmd+P or Ctrl+P) to print a snapshot of the current view.
+This repo is public and contains contractor names, emails, employee IDs, and managers sourced from an internal HR export. Treat accordingly.
