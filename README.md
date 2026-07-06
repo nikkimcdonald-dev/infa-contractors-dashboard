@@ -1,4 +1,4 @@
-# Fieldglass Onboarding Status Dashboard
+# Informatica Contractor Onboarding Dashboard
 
 Interactive web dashboard tracking INFA contractor migration status from IQN to SAP Fieldglass, following the Informatica acquisition.
 
